@@ -1,0 +1,16 @@
+syntax = "proto3";
+package user;
+
+option go_package = "github.com/colin4683/grpc/user.proto";
+
+service UserService {
+    rpc Authenticate(AuthRequest) returns (MenuResponse) {};
+}
+
+message AuthRequest {
+    string token = 1;
+}
+
+message MenuResponse {
+    string success = 1;
+}
