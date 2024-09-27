@@ -18,7 +18,8 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type UserServiceClient interface {
-	Authenticate(ctx context.Context, in *AuthRequest, opts ...grpc.CallOption) (*MenuResponse, error)
+	Authenticate(ctx context.Context, in *AuthRequest, opts ...grpc.CallOption) (*AuthResponse, error)
+	Heartbeat(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error)
 }
 
 type userServiceClient struct {
@@ -29,9 +30,18 @@ func NewUserServiceClient(cc grpc.ClientConnInterface) UserServiceClient {
 	return &userServiceClient{cc}
 }
 
-func (c *userServiceClient) Authenticate(ctx context.Context, in *AuthRequest, opts ...grpc.CallOption) (*MenuResponse, error) {
-	out := new(MenuResponse)
+func (c *userServiceClient) Authenticate(ctx context.Context, in *AuthRequest, opts ...grpc.CallOption) (*AuthResponse, error) {
+	out := new(AuthResponse)
 	err := c.cc.Invoke(ctx, "/user.UserService/Authenticate", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) Heartbeat(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error) {
+	out := new(PingResponse)
+	err := c.cc.Invoke(ctx, "/user.UserService/Heartbeat", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +52,8 @@ func (c *userServiceClient) Authenticate(ctx context.Context, in *AuthRequest, o
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility
 type UserServiceServer interface {
-	Authenticate(context.Context, *AuthRequest) (*MenuResponse, error)
+	Authenticate(context.Context, *AuthRequest) (*AuthResponse, error)
+	Heartbeat(context.Context, *PingRequest) (*PingResponse, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -50,8 +61,11 @@ type UserServiceServer interface {
 type UnimplementedUserServiceServer struct {
 }
 
-func (UnimplementedUserServiceServer) Authenticate(context.Context, *AuthRequest) (*MenuResponse, error) {
+func (UnimplementedUserServiceServer) Authenticate(context.Context, *AuthRequest) (*AuthResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Authenticate not implemented")
+}
+func (UnimplementedUserServiceServer) Heartbeat(context.Context, *PingRequest) (*PingResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Heartbeat not implemented")
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 
@@ -84,6 +98,24 @@ func _UserService_Authenticate_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserService_Heartbeat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).Heartbeat(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/user.UserService/Heartbeat",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).Heartbeat(ctx, req.(*PingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UserService_ServiceDesc is the grpc.ServiceDesc for UserService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -94,6 +126,10 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Authenticate",
 			Handler:    _UserService_Authenticate_Handler,
+		},
+		{
+			MethodName: "Heartbeat",
+			Handler:    _UserService_Heartbeat_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
