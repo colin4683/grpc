@@ -1,4 +1,4 @@
-module github.com/bradcypert/proto_example
+module github.com/colin4683/grpc
 
 go 1.23.1
 
